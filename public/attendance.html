@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zaiqa Mahal · QR Attendance</title>
+  <!-- Font Awesome 6 for clean icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <!-- HTML5 QR Scanner library (lightweight, professional) -->
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(145deg, #f9f3e8 0%, #fff3e0 100%);
+      min-height: 100vh;
+      padding: 2rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* main card – premium blur effect */
+    .app-container {
+      max-width: 700px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 40px 40px 30px 30px;
+      box-shadow: 0 25px 45px -12px rgba(100, 60, 10, 0.25), 0 2px 8px rgba(0,0,0,0.03);
+      padding: 2rem 1.8rem 2.8rem 1.8rem;
+      border: 1px solid rgba(255, 245, 235, 0.6);
+    }
+
+    /* header with logo + Zaiqa Mahal */
+    .brand-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.8rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 2px dashed #e1b88c;
+    }
+
+    .logo-wrapper {
+      background: #c2693c;
+      background: linear-gradient(135deg, #b85e2a, #c2714a);
+      width: 58px;
+      height: 58px;
+      border-radius: 20px 8px 20px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 12px 18px -8px rgba(180, 90, 30, 0.4);
+      transform: rotate(-1deg);
+    }
+
+    .logo-wrapper i {
+      font-size: 2.4rem;
+      color: #fef1e4;
+      filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.1));
+      transform: rotate(2deg);
+    }
+
+    .title-group {
+      flex: 1;
+    }
+
+    .title-group h1 {
+      font-size: 2.1rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: #4a2c1a;
+      line-height: 1.1;
+      text-shadow: 2px 2px 0 rgba(255, 215, 175, 0.5);
+    }
+
+    .title-group .subhead {
+      font-size: 0.9rem;
+      font-weight: 400;
+      color: #996b48;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .title-group .subhead i {
+      font-size: 0.7rem;
+      color: #c2714a;
+    }
+
+    /* QR scanner container – elegant frame */
+    .qr-scanner-wrapper {
+      background: #fefaf5;
+      border-radius: 36px 18px 36px 18px;
+      padding: 18px;
+      margin: 25px 0 20px;
+      border: 1px solid #edd7bf;
+      box-shadow: inset 0 0 0 1px rgba(255,245,235,0.8), 0 12px 22px -12px #bb8b63;
+    }
+
+    #qr-reader {
+      width: 100%;
+      border-radius: 28px 12px 28px 12px !important;
+      overflow: hidden;
+      background: #1e1a16; /* dark background for camera contrast */
+      border: 2px solid #cfa776 !important;
+    }
+
+    /* style QR library elements to match brand */
+    #qr-reader__scan_region video {
+      border-radius: 28px 12px 0 0;
+    }
+
+    #qr-reader__dashboard {
+      background: #f3e2d2;
+      border-radius: 0 0 20px 20px;
+      padding: 6px !important;
+    }
+
+    #qr-reader__status_span {
+      color: #4a2c1a !important;
+      font-weight: 500;
+    }
+
+    #qr-reader button {
+      background: #c2714a !important;
+      color: white !important;
+      border: none !important;
+      border-radius: 60px !important;
+      padding: 6px 18px !important;
+      font-weight: 500 !important;
+      font-size: 0.8rem !important;
+      box-shadow: 0 4px 10px rgba(170, 100, 40, 0.3) !important;
+    }
+
+    /* status message – clean and professional */
+    .status-message {
+      background: #f0e5da;
+      border-radius: 60px;
+      padding: 16px 24px;
+      text-align: center;
+      font-weight: 500;
+      font-size: 1.1rem;
+      color: #3f2c1b;
+      border: 1px solid #ddc2a8;
+      margin: 20px 0 0;
+      box-shadow: 0 6px 16px rgba(140, 90, 50, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .status-message i {
+      font-size: 1.4rem;
+      color: #b56f43;
+    }
+
+    .status-message.success i {
+      color: #1f7840;
+    }
+
+    .status-message.error i {
+      color: #ba3f3f;
+    }
+
+    /* no extra clutter, just a faint divider line */
+    .footer-note {
+      text-align: center;
+      margin-top: 30px;
+      font-size: 0.8rem;
+      color: #ccaa8a;
+      letter-spacing: 1px;
+      font-weight: 300;
+    }
+
+    /* responsive touch */
+    @media (max-width: 480px) {
+      .app-container { padding: 1.5rem 1rem; }
+      .title-group h1 { font-size: 1.8rem; }
+      .qr-scanner-wrapper { padding: 10px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app-container">
+  <!-- brand header unchanged – Zaiqa Mahal in focus -->
+  <div class="brand-header">
+    <div class="logo-wrapper">
+      <i class="fas fa-utensils"></i>
+    </div>
+    <div class="title-group">
+      <h1>Zaiqa Mahal <span style="font-weight:300; color:#b56f43;">Attendance</span></h1>
+      <div class="subhead">
+        <i class="fas fa-qrcode"></i>
+        <span>SCAN · MARK · PROFESSIONAL</span>
+        <i class="fas fa-circle" style="margin-left:auto;"></i>
+      </div>
+    </div>
+    <i class="fas fa-spa" style="color:#dbb594; font-size:1.6rem; opacity:0.5; margin-left:auto;"></i>
+  </div>
+
+  <!-- QR SCANNER section – only scanner, no buttons or employee list -->
+  <div class="qr-scanner-wrapper">
+    <div id="qr-reader"></div>
+  </div>
+
+  <!-- status area: "please wait", ready, or error messages – minimal -->
+  <div id="scanner-status" class="status-message">
+    <i class="fas fa-camera"></i> <span>Initializing camera ...</span>
+  </div>
+
+  <!-- subtle line, no extra text, just brand aura -->
+  <div class="footer-note">
+    <i class="fas fa-mug-saucer"></i> ZAIQA MAHAL · DESI ZAIKA <i class="fas fa-mug-saucer"></i>
+  </div>
+</div>
+
+<script>
+  (function() {
+    // ----- DOM elements -----
+    const statusDiv = document.getElementById('scanner-status');
+
+    // ----- state -----
+    let scanner = null;                // Html5Qrcode instance
+    let isRunning = false;             // scanner actively running
+    let processing = false;            // block multiple scans during wait
+
+    // helper to update status text & style
+    function updateStatus(text, type = 'info') {
+      if (!statusDiv) return;
+      statusDiv.innerHTML = ''; // clear
+      const icon = document.createElement('i');
+      let iconClass = 'fa-info-circle';
+      if (type === 'success') iconClass = 'fa-check-circle';
+      else if (type === 'error') iconClass = 'fa-exclamation-triangle';
+      icon.className = `fas ${iconClass}`;
+      const span = document.createElement('span');
+      span.textContent = text;
+      statusDiv.appendChild(icon);
+      statusDiv.appendChild(span);
+      // remove previous style classes
+      statusDiv.classList.remove('success', 'error');
+      if (type === 'success') statusDiv.classList.add('success');
+      if (type === 'error') statusDiv.classList.add('error');
+    }
+
+    // ----- scanner control -----
+    async function startScanner() {
+      if (isRunning) return;
+      try {
+        // request camera list
+        const cameras = await Html5Qrcode.getCameras();
+        if (!cameras || cameras.length === 0) {
+          throw new Error('No camera found on this device');
+        }
+
+        if (!scanner) {
+          scanner = new Html5Qrcode('qr-reader');
+        }
+
+        // prefer rear camera if available, else first
+        const backCamera = cameras.find(cam => 
+          cam.label.toLowerCase().includes('back') || cam.label.toLowerCase().includes('rear')
+        ) || cameras[0];
+
+        await scanner.start(
+          { deviceId: backCamera.id },
+          {
+            fps: 10,
+            qrbox: { width: 240, height: 240 },
+            aspectRatio: 1.0,
+            showTorchButtonIfSupported: false,
+          },
+          onScanSuccess,  // QR decode success
+          onScanError     // scan error (mostly ignore)
+        );
+
+        isRunning = true;
+        updateStatus('📷 Scanner ready. Place QR code in frame.', 'info');
+      } catch (err) {
+        console.warn('Scanner start error:', err);
+        updateStatus(`⚠️ Camera error: ${err.message}`, 'error');
+        // retry after 3 seconds? but we keep it simple, user can refresh.
+      }
+    }
+
+    async function stopScanner() {
+      if (!scanner || !isRunning) return;
+      try {
+        await scanner.stop();
+        isRunning = false;
+      } catch (err) {
+        console.warn('Stop scanner error:', err);
+      }
+    }
+
+    // ----- QR success handler -----
+    const onScanSuccess = async (decodedText) => {
+      // ignore if already processing a scan (waiting period)
+      if (processing) return;
+
+      processing = true;
+
+      // Immediately stop scanner and show "please wait" (5 sec)
+      await stopScanner();
+      updateStatus('⏳ Please wait 5 seconds …', 'info');
+
+      // Send attendance (POST /api/attendance) with employeeId = decodedText, status = present
+      try {
+        const response = await fetch('/api/attendance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ employeeId: decodedText, status: 'present' })
+        });
+
+        if (response.ok) {
+          // we do NOT show name/success details – just generic wait
+          // (keep the "please wait" message, optionally we could update but not needed)
+          // but we'll let the timer overwrite after 5 sec.
+          console.log('Attendance marked');
+        } else {
+          // still wait, just silently log; we won't change message to keep UI calm
+          console.warn('Server returned error');
+        }
+      } catch (err) {
+        console.warn('Network error while marking attendance');
+      }
+
+      // Wait exactly 5 seconds, then restart scanner and reset processing flag
+      setTimeout(async () => {
+        await startScanner();          // will set isRunning = true, update status to ready
+        processing = false;            // allow new scans
+      }, 5000); // 5 seconds wait
+    };
+
+    // QR scan "error" (e.g. no QR found) – do nothing, just keep scanning
+    const onScanError = (errorMessage) => {
+      // silent – we don't want to show any failure note
+      // you can uncomment for debugging: console.log(errorMessage);
+    };
+
+    // ----- initial load: start scanner -----
+    window.addEventListener('load', () => {
+      // small delay to let DOM settle
+      setTimeout(() => {
+        startScanner().catch(e => {
+          updateStatus('Camera access denied or not available', 'error');
+        });
+      }, 100);
+    });
+
+    // Optional: clean up on page unload (stop scanner)
+    window.addEventListener('beforeunload', async () => {
+      if (scanner && isRunning) {
+        try { await scanner.stop(); } catch (e) {}
+      }
+    });
+  })();
+</script>
+
+<!-- Ensure no legacy message or buttons appear (old elements removed) -->
+<!-- No employee list, no present/absent buttons, only QR scanner -->
+</body>
+</html>
