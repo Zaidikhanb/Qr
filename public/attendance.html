@@ -1,242 +1,378 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Employee Attendance with QR Scanner</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zaiqa Mahal · QR attendance</title>
+  <!-- jsQR library -->
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
   <style>
-    body { font-family: Arial; padding: 20px; background: #f4f4f4; }
-    h1 { color: #333; text-align:center; }
-    .employee-list { max-width: 500px; margin: auto; }
-    .employee-card {
-      background: white; padding: 15px; margin: 10px 0; border-radius: 8px;
-      display: flex; justify-content: space-between; align-items: center;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
-    .role-tag {
-      background: #007bff; color: white; padding: 3px 8px; border-radius: 12px;
-      font-size: 0.8em;
-    }
-    button {
-      padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer;
-      font-weight: bold; margin-left: 5px;
-    }
-    .present { background: #28a745; color: white; }
-    .absent { background: #dc3545; color: white; }
-    .message { text-align: center; color: green; margin: 10px; }
 
-    /* QR scanner styles */
-    .scanner-container {
-      max-width: 500px;
-      margin: 20px auto;
-      text-align: center;
-      background: white;
-      padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    body {
+      background: #0b0f16;
+      font-family: 'Segoe UI', 'Poppins', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      margin: 0;
     }
+
+    /* stylish main title */
+    .elegant-title {
+      font-size: 2.8rem;
+      font-weight: 500;
+      letter-spacing: 2px;
+      color: #f5e7c8;
+      text-shadow: 0 4px 15px rgba(230, 180, 80, 0.3), 0 0 0 1px #c9a44b inset;
+      margin-bottom: 1.2rem;
+      text-align: center;
+      font-family: 'Times New Roman', 'Playfair Display', serif;
+      word-break: keep-all;
+      border-bottom: 1px solid #c9a44b40;
+      padding-bottom: 0.5rem;
+      width: fit-content;
+      max-width: 90vw;
+    }
+
+    .elegant-title span {
+      font-weight: 300;
+      color: #dbbd7a;
+      font-style: italic;
+      font-size: 2.2rem;
+    }
+
+    /* square scanner card */
+    .scanner-square {
+      background: #1e1e2a;
+      border-radius: 2.5rem;
+      padding: 1.8rem 1.8rem 2rem 1.8rem;
+      box-shadow: 0 25px 40px -10px black, 0 0 0 2px #3e362e, 0 0 0 5px #0e0c14;
+      max-width: 460px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* camera container – exactly square */
+    .camera-frame {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;               /* perfect square */
+      border-radius: 1.8rem;
+      overflow: hidden;
+      background: #0a0a10;
+      box-shadow: inset 0 0 30px #00000099, 0 10px 20px #00000060;
+      border: 3px solid #b2925a;
+    }
+
     #video {
       width: 100%;
-      max-width: 400px;
-      border-radius: 8px;
+      height: 100%;
+      object-fit: cover;                  /* fills square, might crop slightly – preserves scan area */
+      display: block;                     /* always visible */
+      background: black;
+      transform: scaleX(1);                /* ensure no mirroring (default facingMode environment is natural) */
+    }
+
+    /* scanning animation overlay (cool moving line + corners) */
+    .scan-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;                /* allow clicks through to nothing */
+      border-radius: 1.6rem;
+      box-shadow: 0 0 0 2px #dbb45880 inset, 0 0 15px #e3b154;
+    }
+
+    /* moving scanning line */
+    .scan-line {
+      position: absolute;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, transparent, #fcd34d, #fbbf24, #fcd34d, transparent);
+      filter: drop-shadow(0 0 8px #fbbf24);
+      animation: scanMove 2.2s ease-in-out infinite;
+      border-radius: 2px;
+      opacity: 0.9;
+    }
+
+    @keyframes scanMove {
+      0% { top: 5%; }
+      25% { top: 30%; }
+      50% { top: 70%; }
+      75% { top: 40%; }
+      100% { top: 5%; }
+    }
+
+    /* corner brackets for that premium look */
+    .corner-tl, .corner-tr, .corner-bl, .corner-br {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      border-color: #f7e3b1;
+      border-style: solid;
+      border-width: 0;
+      filter: drop-shadow(0 0 6px #f3cd81);
+    }
+    .corner-tl { left: 12px; top: 12px; border-left-width: 4px; border-top-width: 4px; border-radius: 20px 0 0 0; }
+    .corner-tr { right: 12px; top: 12px; border-right-width: 4px; border-top-width: 4px; border-radius: 0 20px 0 0; }
+    .corner-bl { left: 12px; bottom: 12px; border-left-width: 4px; border-bottom-width: 4px; border-radius: 0 0 0 20px; }
+    .corner-br { right: 12px; bottom: 12px; border-right-width: 4px; border-bottom-width: 4px; border-radius: 0 0 20px 0; }
+
+    /* subtle feedback area (no button, just small text) */
+    .scan-feedback {
+      margin-top: 1.2rem;
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: 400;
+      min-height: 2.8rem;
+      color: #ead3a5;
+      background: #2b2532;
+      padding: 0.8rem 1.2rem;
+      border-radius: 60px;
+      letter-spacing: 0.3px;
+      border: 1px solid #9f884c;
+      box-shadow: inset 0 1px 5px #00000055;
+      backdrop-filter: blur(2px);
+      word-break: break-word;
+    }
+
+    .scan-feedback.success {
+      color: #bcf0b4;
+      border-color: #8bc34a;
+    }
+    .scan-feedback.warning {
+      color: #ffcf9a;
+      border-color: #e6a345;
+    }
+
+    /* no buttons, no extra lists – everything clean */
+    .hidden {
       display: none;
-      margin: 10px auto;
     }
-    #scan-btn {
-      background: #6c757d;
-      color: white;
-      padding: 10px 20px;
-      font-size: 1em;
-      margin-bottom: 10px;
-    }
-    #scan-btn.scanning {
-      background: #dc3545;
-    }
-    #qr-result {
-      margin-top: 10px;
-      font-weight: bold;
-      min-height: 24px;
+
+    /* small footer – not required, but adds nothing interactive */
+    .brand-credit {
+      margin-top: 0.8rem;
+      font-size: 0.8rem;
+      color: #5f5340;
     }
   </style>
-  <!-- QR code decoding library -->
-  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 </head>
 <body>
-  <h1>📷 Mark Attendance via QR</h1>
+  <h1 class="elegant-title">ZAiQA  MAHAL  <span>STAFF</span></h1>
 
-  <!-- QR Scanner Section -->
-  <div class="scanner-container">
-    <button id="scan-btn">▶ Start QR Scanner</button>
-    <video id="video" playsinline></video>
-    <div id="qr-result"></div>
+  <!-- main square scanner (always alive) -->
+  <div class="scanner-square">
+    <div class="camera-frame">
+      <video id="video" playsinline autoplay muted></video>
+      <!-- cool scanning overlays (pure css animation) -->
+      <div class="scan-overlay">
+        <div class="scan-line"></div>
+        <div class="corner-tl"></div>
+        <div class="corner-tr"></div>
+        <div class="corner-bl"></div>
+        <div class="corner-br"></div>
+      </div>
+    </div>
+    <!-- minimal result area (no buttons, just feedback) -->
+    <div id="qr-result" class="scan-feedback">⚡ scanner ready</div>
   </div>
-
-  <!-- Employee list (manual marking) -->
-  <h1 style="text-align:center;">or Manual Entry</h1>
-  <div id="employeeList" class="employee-list"></div>
-  <div id="message" class="message"></div>
+  <div class="brand-credit">✨ look into camera · QR marks present</div>
 
   <script>
-    // Global variables
-    let employeesList = [];               // stores all employees fetched from API
-    let scanning = false;
-    let videoElement = document.getElementById('video');
-    let scanBtn = document.getElementById('scan-btn');
-    let qrResultDiv = document.getElementById('qr-result');
-    let stream = null;
-    let animationFrame = null;
+    (function() {
+      // ---------- GLOBALS ----------
+      let employeesList = [];               // all employees from API
+      let scanning = true;                  // always on
+      const videoElement = document.getElementById('video');
+      const qrResultDiv = document.getElementById('qr-result');
+      let stream = null;
+      let animationFrame = null;
 
-    // Fetch employees from API and store globally
-    async function fetchEmployees() {
-      try {
-        const res = await fetch('/api/employees');
-        const employees = await res.json();
-        employeesList = employees;         // store for QR lookup
-        const list = document.getElementById('employeeList');
-        list.innerHTML = employees.map(emp => `
-          <div class="employee-card">
-            <div>
-              <strong>${emp.name}</strong> 
-              <span class="role-tag">${emp.role}</span>
-            </div>
-            <div>
-              <button class="present" onclick="markAttendance('${emp._id}', 'present')">Present</button>
-              <button class="absent" onclick="markAttendance('${emp._id}', 'absent')">Absent</button>
-            </div>
-          </div>
-        `).join('');
-      } catch (error) {
-        console.error('Error fetching employees:', error);
-      }
-    }
+      // Cooldown to avoid double-marking same QR within 4 seconds
+      let lastScannedName = '';
+      let lastScannedTime = 0;
+      const COOLDOWN_MS = 4000;
 
-    // Mark attendance (existing function)
-    async function markAttendance(employeeId, status) {
-      try {
-        const res = await fetch('/api/attendance', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ employeeId, status })
-        });
-        if (res.ok) {
-          document.getElementById('message').innerText = `✅ Marked ${status} successfully!`;
-          setTimeout(() => document.getElementById('message').innerText = '', 2000);
-        } else {
-          alert('Error marking attendance');
+      // ---------- FETCH EMPLOYEES (silent, no list UI) ----------
+      async function fetchEmployees() {
+        try {
+          const res = await fetch('/api/employees');
+          const employees = await res.json();
+          employeesList = employees;         // store for matching
+          qrResultDiv.textContent = `👥 ${employees.length} staff · ready`;
+        } catch (error) {
+          console.error('fetch error', error);
+          qrResultDiv.textContent = '⚠️ could not load staff list';
         }
-      } catch (error) {
-        alert('Network error');
       }
-    }
 
-    // ---------- QR SCANNER LOGIC ----------
-    // Stop camera and scanning
-    function stopCamera() {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        stream = null;
-      }
-      if (animationFrame) {
-        cancelAnimationFrame(animationFrame);
-        animationFrame = null;
-      }
-      videoElement.style.display = 'none';
-      scanning = false;
-      scanBtn.textContent = '▶ Start QR Scanner';
-      scanBtn.classList.remove('scanning');
-    }
-
-    // Start camera and scanning
-    async function startScanner() {
-      try {
-        // Request camera
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        videoElement.srcObject = stream;
-        videoElement.setAttribute('playsinline', true); // for iOS
-        videoElement.style.display = 'block';
-        videoElement.play();
-        scanning = true;
-        scanBtn.textContent = '⏹ Stop Scanner';
-        scanBtn.classList.add('scanning');
-        qrResultDiv.textContent = ''; // clear previous result
-
-        // Create a hidden canvas for frame capture
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-
-        // Scan loop
-        function scanFrame() {
-          if (!scanning || videoElement.readyState !== videoElement.HAVE_ENOUGH_DATA) {
-            animationFrame = requestAnimationFrame(scanFrame);
-            return;
-          }
-
-          // Set canvas size to video size
-          canvas.width = videoElement.videoWidth;
-          canvas.height = videoElement.videoHeight;
-          context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-
-          // Get image data and try to decode QR
-          const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-          const code = jsQR(imageData.data, canvas.width, canvas.height, {
-            inversionAttempts: 'dontInvert'
+      // ---------- MARK ATTENDANCE (improved with feedback) ----------
+      async function markAttendance(employeeId, status, employeeName) {
+        try {
+          const res = await fetch('/api/attendance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ employeeId, status })
           });
-
-          if (code) {
-            // Found a QR code
-            const qrName = code.data.trim();
-            stopCamera(); // stop scanning immediately
-            processScannedName(qrName);
+          if (res.ok) {
+            qrResultDiv.textContent = `✅ ${employeeName} marked ${status}`;
+            qrResultDiv.classList.add('success');
+            setTimeout(() => qrResultDiv.classList.remove('success'), 1500);
           } else {
-            // Continue scanning
-            animationFrame = requestAnimationFrame(scanFrame);
+            const errText = await res.text();
+            qrResultDiv.textContent = `❌ error: ${errText.substring(0, 30)}`;
+            qrResultDiv.classList.add('warning');
+            setTimeout(() => qrResultDiv.classList.remove('warning'), 2000);
           }
+        } catch (error) {
+          qrResultDiv.textContent = `📡 network error - try again`;
+          qrResultDiv.classList.add('warning');
+          setTimeout(() => qrResultDiv.classList.remove('warning'), 2000);
+        }
+      }
+
+      // ---------- PROCESS SCANNED NAME (with cooldown & no camera stop) ----------
+      function processScannedName(scannedName) {
+        if (!scannedName || scannedName.trim() === '') {
+          qrResultDiv.textContent = '⚠️ empty QR code';
+          return;
         }
 
-        // Start the loop
-        animationFrame = requestAnimationFrame(scanFrame);
-      } catch (err) {
-        alert('Unable to access camera: ' + err.message);
-        stopCamera();
+        const trimmed = scannedName.trim();
+        const now = Date.now();
+
+        // cooldown check: if same name and within 4 seconds, ignore (but show message)
+        if (trimmed === lastScannedName && (now - lastScannedTime) < COOLDOWN_MS) {
+          qrResultDiv.textContent = `⏱️ ${trimmed} already scanned (cooldown)`;
+          return;
+        }
+
+        // find employee by name (case‑insensitive)
+        const matched = employeesList.find(emp => 
+          emp.name.trim().toLowerCase() === trimmed.toLowerCase()
+        );
+
+        if (matched) {
+          // mark present
+          markAttendance(matched._id, 'present', matched.name);
+          lastScannedName = trimmed;
+          lastScannedTime = now;
+        } else {
+          // not an employee
+          qrResultDiv.textContent = `👤 Hello Mr. ${trimmed}, not in staff list`;
+          qrResultDiv.classList.add('warning');
+          setTimeout(() => qrResultDiv.classList.remove('warning'), 2000);
+          // update lastScanned anyway to avoid spamming unknown names
+          lastScannedName = trimmed;
+          lastScannedTime = now;
+        }
       }
-    }
 
-    // Process the scanned name
-    function processScannedName(scannedName) {
-      if (!scannedName) {
-        qrResultDiv.textContent = '⚠️ QR code contains no text.';
-        return;
+      // ---------- SCANNER LOOP (always on, never stops) ----------
+      function startScanner() {
+        // Request camera (rear environment, not mirrored)
+        navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 640 } } 
+        })
+        .then((mediaStream) => {
+          stream = mediaStream;
+          videoElement.srcObject = stream;
+          videoElement.setAttribute('playsinline', 'true');
+          // video will autoplay because of 'autoplay' attribute
+          
+          // Canvas for frame capture (hidden in memory)
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+
+          // Infinite scanning loop
+          function scanLoop() {
+            if (!scanning) {
+              // if we ever stop (page unload), we cancel.
+              return;
+            }
+
+            if (videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
+              // Set canvas size to video resolution (preserve aspect)
+              canvas.width = videoElement.videoWidth;
+              canvas.height = videoElement.videoHeight;
+
+              if (canvas.width > 0 && canvas.height > 0) {
+                context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+                try {
+                  const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                  const code = jsQR(imageData.data, canvas.width, canvas.height, {
+                    inversionAttempts: 'dontInvert'
+                  });
+
+                  if (code) {
+                    // QR detected – process without stopping camera
+                    processScannedName(code.data);
+                  }
+                } catch (e) {
+                  // security error or canvas taint? ignore.
+                }
+              }
+            }
+            // continue scanning forever
+            animationFrame = requestAnimationFrame(scanLoop);
+          }
+
+          // start the infinite loop
+          animationFrame = requestAnimationFrame(scanLoop);
+          qrResultDiv.textContent = '🔍 camera active · scanning';
+        })
+        .catch((err) => {
+          qrResultDiv.textContent = '📵 camera access denied';
+          console.warn('Camera error:', err);
+        });
       }
 
-      // Find employee by name (case-insensitive, trim)
-      const matchedEmployee = employeesList.find(emp => 
-        emp.name.trim().toLowerCase() === scannedName.toLowerCase()
-      );
-
-      if (matchedEmployee) {
-        // Employee found – mark attendance as Present automatically
-        markAttendance(matchedEmployee._id, 'present');
-        qrResultDiv.textContent = `✅ ${matchedEmployee.name} marked present.`;
-      } else {
-        // Not an employee – show friendly message
-        qrResultDiv.textContent = `Hello Mr. ${scannedName}, you are not allowed to add attendance.`;
+      // Cleanup on page unload (stop tracks, cancel animation)
+      function stopScanner() {
+        scanning = false;
+        if (animationFrame) {
+          cancelAnimationFrame(animationFrame);
+          animationFrame = null;
+        }
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+          stream = null;
+        }
       }
-    }
 
-    // Toggle scanner on button click
-    scanBtn.addEventListener('click', () => {
-      if (scanning) {
-        stopCamera();
-      } else {
-        startScanner();
-      }
-    });
+      // ---------- INITIALISE ----------
+      // fetch employee list, then start camera (no button needed)
+      fetchEmployees().then(() => {
+        // small delay for smoother start
+        setTimeout(() => {
+          startScanner();
+        }, 100);
+      });
 
-    // Initialize employees list on page load
-    fetchEmployees();
+      // Ensure camera stops when page is closed/reloaded
+      window.addEventListener('beforeunload', () => {
+        stopScanner();
+      });
 
-    // Optional: Clean up camera if page unloads
-    window.addEventListener('beforeunload', () => {
-      stopCamera();
-    });
+      // optional: if video fails to autoplay (some browsers), we force play
+      videoElement.addEventListener('loadedmetadata', () => {
+        videoElement.play().catch(e => console.warn('play failed', e));
+      });
+
+      // no buttons, no event listeners for toggle – camera is always alive
+      // also remove any lingering references to manual list (already removed from DOM)
+    })();
   </script>
 </body>
   </html>
